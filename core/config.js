@@ -1,5 +1,6 @@
-const dotenv = require('dotenv');
-// dotenv.config({ path: './prod.env' });
+import dotenv from 'dotenv';
+dotenv.config({ path: './.env.production' });
+
 const env = process.env;
 
 const config = {
@@ -13,4 +14,4 @@ const config = {
   },
 };
 
-module.exports = config;
+export default config;

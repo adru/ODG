@@ -9,7 +9,25 @@ function emptyOrRows(rows) {
   return rows;
 }
 
-module.exports = {
-  getOffset,
-  emptyOrRows
+function getNow() {
+  return Math.floor((new Date()).getTime()/1000);
 }
+
+function wait(ms) {
+  return new Promise(resolve => {
+    console.log("fetching...", ms)
+    setTimeout(() => { resolve('') }, ms);
+  })
+}
+
+function parseFilename(str) {
+  return str.replace(/\s+/g, '-').toLowerCase();
+}
+
+export default {
+  getOffset,
+  emptyOrRows,
+  getNow,
+  wait,
+  parseFilename
+};

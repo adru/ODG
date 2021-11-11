@@ -13,10 +13,12 @@
 
 # production
 /build
+/core/output
 
 # misc
 .DS_Store
 .env.local
+.env.livedata
 .env.production
 
 npm-debug.log*

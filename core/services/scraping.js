@@ -1,8 +1,9 @@
-const Web3 = require('web3');
+import Web3 from 'web3';
+import helper from '../helper.js';
 
-const GetOwnersABI = require('../abis/GetOwnersABI.json');
-const ODGTokens = require('./odg_tokens');
-const ProcessingRequests = require('./processing_requests');
+import GetOwnersABI from '../abis/GetOwnersABI.json';
+import ODGTokens from './odg_tokens.js';
+import Requests from './requests.js';
 
 async function start() {
   try {
@@ -18,7 +19,7 @@ async function start() {
 
 async function scrapeToken(token) {
   let web3;
-  if (token.chain === "matic") {
+  if (token.chain === "polygon") {
     web3 = new Web3("https://rpc-mumbai.maticvigil.com/");
   }
   const contract = new web3.eth.Contract(GetOwnersABI, token.token_address);
@@ -26,22 +27,22 @@ async function scrapeToken(token) {
     const data = await contract.methods.getOwners().call({from: '0xA1A8d543824eD33084D5c1A8156A93444e5c4c34'});
     // console.log(token.token_table);
     let token_array = [];
-    let now = Math.floor((new Date()).getTime()/1000);
     for await (const [index, owner] of data.entries()) {
       if (index) {
         // console.log(index, owner);
-        token_array.push([ token.token_pk, index, owner, token.chain, now ]);
+        token_array.push([ token.token_pk, index, owner, token.chain, helper.getNow() ]);
       }
     }
-    const insert = await ProcessingRequests.createAll(token_array);
-    console.log(insert);
+    // console.log(token_array);
+    const insert = await Requests.createAll(token_array);
+    return true;
   } catch (err) {
     console.error('Error', err.message);
-    console.log("trying again...");
-    scrapeToken(token);
+    // console.log("trying again...");
+    // scrapeToken(token);
   }
 }
 
-module.exports = {
+export default {
   start
 }

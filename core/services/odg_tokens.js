@@ -1,10 +1,10 @@
-const db = require('./db');
-const helper = require('../helper');
-const config = require('../config');
+import db from './db.js';
+import helper from '../helper.js';
+import config from '../config.js';
 
 async function getAll() {
   const rows = await db.query(
-    `SELECT token_pk, token_address, token_table, chain
+    `SELECT token_pk, token_address, token_table, chain, metadata_hash, image_hash, percentiles
     FROM odg_tokens`
   );
   const data = helper.emptyOrRows(rows);
@@ -14,6 +14,6 @@ async function getAll() {
   }
 }
 
-module.exports = {
+export default {
   getAll
-}
+};

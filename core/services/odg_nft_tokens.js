@@ -1,18 +1,14 @@
-const db = require('./db');
-const helper = require('../helper');
-const config = require('../config');
+import db from './db.js';
+import helper from '../helper.js';
+import config from '../config.js';
 
 async function create(table, data) {
-  const result = await db.query(
-    `INSERT INTO ?
-    (wallet_address, chain, status, created_date)
-    VALUES
-    (?, ?, ?, ?)
-    DUPLICATE KEY UPDATE request_pk = request_pk`,
-    [
+  const sql = `INSERT INTO `+table+`
+    (token_id, wallet_fk, hodl_date)
+    VALUES (?, ?, ?)
+    ON DUPLICATE KEY UPDATE token_id = token_id, hodl_date = IF(wallet_fk = VALUES(wallet_fk), hodl_date, VALUES(hodl_date)), wallet_fk = VALUES(wallet_fk)`;
 
-    ]
-  );
+  const result = await db.query(sql, [data.token_id, data.wallet_fk, data.now]);
 
   let message = 'Error in adding request';
 
@@ -23,89 +19,65 @@ async function create(table, data) {
   return {message};
 }
 
-async function createAll(table, array) {
+async function getByAddressChain(table, address, chain) {
+  const sql = `SELECT * FROM `+table+` t
+    LEFT JOIN wallets w ON t.wallet_fk = w.wallet_pk
+    WHERE w.wallet_address = ? AND w.chain = ?`;
 
+  const rows = await db.query(sql, [address, chain]);
+  const data = helper.emptyOrRows(rows);
+
+  return {
+    data
+  }
 }
 
-// async function create(programmingLanguage){
-//   const result = await db.query(
-//     `INSERT INTO programming_languages
-//     (name, released_year, githut_rank, pypl_rank, tiobe_rank)
-//     VALUES
-//     (?, ?, ?, ?, ?)`,
-//     [
-//       programmingLanguage.name, programmingLanguage.released_year,
-//       programmingLanguage.githut_rank, programmingLanguage.pypl_rank,
-//       programmingLanguage.tiobe_rank
-//     ]
-//   );
-//
-//   let message = 'Error in creating programming language';
-//
-//   if (result.affectedRows) {
-//     message = 'Programming language created successfully';
-//   }
-//
-//   return {message};
-// }
+async function getAll(table) {
+  const rows = await db.query(
+    `SELECT * FROM `+table+` ORDER BY token_id ASC`
+  );
+  const data = helper.emptyOrRows(rows);
 
-// async function getMultiple(page = 1){
-//   const offset = helper.getOffset(page, config.listPerPage);
-//   const rows = await db.query(
-//     `SELECT id, name, released_year, githut_rank, pypl_rank, tiobe_rank
-//     FROM programming_languages LIMIT ?,?`,
-//     [offset, config.listPerPage]
-//   );
-//   const data = helper.emptyOrRows(rows);
-//   const meta = {page};
-//
-//   return {
-//     data,
-//     meta
-//   }
-// }
+  return {
+    data
+  }
+}
 
-// async function update(id, programmingLanguage){
-//   const result = await db.query(
-//     `UPDATE programming_languages
-//     SET name=?, released_year=?, githut_rank=?,
-//     pypl_rank=?, tiobe_rank=?
-//     WHERE id=?`,
-//     [
-//       programmingLanguage.name, programmingLanguage.released_year,
-//       programmingLanguage.githut_rank, programmingLanguage.pypl_rank,
-//       programmingLanguage.tiobe_rank, id
-//     ]
-//   );
-//
-//   let message = 'Error in updating programming language';
-//
-//   if (result.affectedRows) {
-//     message = 'Programming language updated successfully';
-//   }
-//
-//   return {message};
-// }
+async function updateScoreByWalletPk(table, pk, score) {
+  const now = helper.getNow()
 
-// async function remove(id){
-//   const result = await db.query(
-//     `DELETE FROM programming_languages WHERE id=?`,
-//     [id]
-//   );
-//
-//   let message = 'Error in deleting programming language';
-//
-//   if (result.affectedRows) {
-//     message = 'Programming language deleted successfully';
-//   }
-//
-//   return {message};
-// }
+  let sql = `UPDATE `+table+` SET score = ?, modified_date = ? WHERE wallet_fk = ?`;
+  const result = await db.query(sql, [score, now, pk]);
 
-module.exports = {
+  let message = 'Error in updating scores';
+  if (result.affectedRows) {
+    message = 'Scores updated';
+  }
+  return {message};
+}
+
+async function rankTokens(table) {
+  let sql = `UPDATE `+table+` a INNER JOIN (SELECT token_id,
+      @rank := IF (@rankScore = score, @rank, @count) AS rank,
+      @percentile := IF(@rankScore=score, @percentile, ROUND((@totalToken - @count + 1)/(@totalToken)*100,2)) AS percentile,
+      @rankScore := score,
+      @count := @count + 1
+    FROM `+table+` t, (SELECT @rank := 0, @rankScore := 0, @count := 1, @percentile := 100, @totalToken := (SELECT count(*) FROM odg_alpha_tokens) s ) r
+    ORDER BY score DESC) b ON a.token_id = b.token_id
+    SET a.rank = b.rank, a.percentile = b.percentile`;
+  const result = await db.query(sql);
+
+  let message = 'Error in updating ranks';
+  if (result.affectedRows) {
+    message = 'Ranks updated';
+  }
+  return {message};
+}
+
+export default {
   create,
-  createAll,
-  // create,
-  // update,
-  // remove
+  getByAddressChain,
+  getAll,
+  updateScoreByWalletPk,
+  rankTokens
 }
