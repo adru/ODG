@@ -63,9 +63,9 @@ async function calculateScores(odg_tokens) {
     }
 
     await startTheMachine(odg_tokens);
+  } else {
+    console.log(walletError.data.length, "wallets had errors. Do not proceed further.");
   }
-
-  console.log(walletError.data.length, "wallets had errors. Do not proceed further.");
 }
 
 async function startTheMachine(odg_tokens) {
@@ -73,11 +73,12 @@ async function startTheMachine(odg_tokens) {
     const table = odg_token.token_table;
     await ODGNFTTokens.rankTokens(table);
     // NFT Machine!
-    await ODGNFTMachine.recreateOutputsDir(table);
+    await ODGNFTMachine.recreateOutputsDir(odg_token);
     const odg_nft_tokens = await ODGNFTTokens.getAll(table);
     for (const odg_nft_token of odg_nft_tokens.data) {
       await ODGNFTMachine.recreateImageAndMetadata(odg_token, odg_nft_token);
     }
+    console.log("Subplanetary upload", odg_token.token_table);
     await ODGNFTMachine.uploadPlanets(odg_token);
   }
 

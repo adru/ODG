@@ -1,5 +1,5 @@
 import dotenv from 'dotenv';
-dotenv.config({ path: './.env.local' });
+dotenv.config({ path: './.env.testnet' });
 
 const env = process.env;
 
@@ -13,7 +13,9 @@ const config = {
     timezone:'+00:00',
   },
   dir: {
-    output: "./output",
+    resolvedOutput: "https://api.originaldegens.io",
+    metadataOutput: env.OUTPUT_PATH || "./output",
+    imageOutput: "./output",
     input: "./input"
   }
 };

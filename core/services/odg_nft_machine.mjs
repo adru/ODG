@@ -1,29 +1,32 @@
 import fs from "fs";
 import Canvas from "canvas";
 import helper from '../helper.mjs';
-import * as IPFS from 'ipfs-core';
 import config from '../config.mjs';
+import fetch from 'node-fetch';
 
 import ODGTokens from './odg_tokens.mjs';
 import ODGNFTTokens from './odg_nft_tokens.mjs';
 // import Interplanetary from './interplanetary.js';
-import Subplanetary from './subplanetary.js';
+import Subplanetary from './subplanetary.mjs';
 
 const imageFormat = {
   width: 1000,
   height: 1000
 }
 const dir = config.dir;
-let ipfs;
 
-async function recreateOutputsDir(folder) {
-  if (fs.existsSync(`${dir.output}/${folder}`)) {
-    fs.rmdirSync(`${dir.output}/${folder}`, { recursive: true });
+async function recreateOutputsDir(odg_token) {
+  const metadataOutputPath = `${dir.metadataOutput}/${odg_token.token_address}`;
+  if (fs.existsSync(metadataOutputPath)) {
+    await fs.rmdirSync(metadataOutputPath, { recursive: true });
   }
+  await fs.mkdirSync(metadataOutputPath, { recursive: true });
 
-  fs.mkdirSync(`${dir.output}/${folder}`);
-  fs.mkdirSync(`${dir.output}/${folder}/metadata`);
-  fs.mkdirSync(`${dir.output}/${folder}/images`);
+  const imageOutputPath = `${dir.imageOutput}/${odg_token.token_table}`;
+  if (fs.existsSync(imageOutputPath)) {
+    await fs.rmdirSync(imageOutputPath, { recursive: true });
+  }
+  await fs.mkdirSync(`${imageOutputPath}/images`, { recursive: true });
 }
 
 async function recreateImageAndMetadata(odg_token, odg_nft_token) {
@@ -46,7 +49,7 @@ async function recreateImageAndMetadata(odg_token, odg_nft_token) {
 
   newAttributes = newAttributes.map(attr => attr.trait_type === "Circle" ? { ...attr, value: newBase } : attr);
   let newMetadata = { ...baseMetadata, attributes: newAttributes };
-  await fs.writeFileSync(`${dir.output}/${odg_token.token_table}/metadata/${odg_nft_token.token_id}`, JSON.stringify(newMetadata));
+  await fs.writeFileSync(`${dir.metadataOutput}/${odg_token.token_address}/${odg_nft_token.token_id}`, JSON.stringify(newMetadata));
 
   const canvas = Canvas.createCanvas(imageFormat.width, imageFormat.height);
   const ctx = canvas.getContext("2d");
@@ -63,45 +66,55 @@ async function recreateImageAndMetadata(odg_token, odg_nft_token) {
     ctx.drawImage(traitImage,0,0,imageFormat.width,imageFormat.height);
   }
 
-  await fs.writeFileSync(`${dir.output}/${odg_token.token_table}/images/${odg_nft_token.token_id}.png`, canvas.toBuffer("image/png"));
+  await fs.writeFileSync(`${dir.imageOutput}/${odg_token.token_table}/images/${odg_nft_token.token_id}.png`, canvas.toBuffer("image/png"));
 }
 
 async function uploadPlanets(odg_token) {
-  if (fs.existsSync(`${dir.output}/${odg_token.token_table}`)) {
-    const images = await Interplanetary.updateImages(odg_token);
-    await checkMetadataMatches(odg_token, images.ipns);
-    const metadata = await Interplanetary.updateMetadata(odg_token);
-    // IPNS should never change, so a manual update of tokenURI should suffice
-    await ODGTokens.update(odg_token.token_pk, { metadata_ipfs: metadata.ipfs, metadata_ipns: metadata.ipns, image_ipfs: images.ipfs, image_ipns: images.ipns });
+  let metadataOutputPath = `${dir.metadataOutput}/${odg_token.token_address}/1`;
+  let imageOutputPath = `${dir.imageOutput}/${odg_token.token_table}/images`;
+  if (fs.existsSync(metadataOutputPath) && fs.existsSync(imageOutputPath)) {
+    const images = await Subplanetary.updateImages(odg_token, imageOutputPath);
+    await checkMetadataMatches(odg_token, images.ipfs);
+    // Metadata will be centralized at https://api.originaldegens.io/${odg_token.token_address}/${token_id}
+    await ODGTokens.update(odg_token.token_pk, { metadata_path: `${dir.resolvedOutput}/${odg_token.token_address}/`, image_ipfs: images.ipfs });
   } else {
-    console.error("Folder doesn't exist yet. Carry on...");
+    console.error("Folders don't exist yet. Carry on...");
   }
 }
 
-async function checkMetadataMatches(odg_token, ipns) {
+async function checkMetadataMatches(odg_token, ipfs) {
   const rawMetadataCheck = await fs.readFileSync(`${dir.input}/${odg_token.token_table}/metadata-base/1`);
   const baseMetadataCheck = JSON.parse(rawMetadataCheck);
 
-  const ipns_root = `ipns://${ipns}`;
-  console.log(ipns_root, baseMetadataCheck);
+  const ipfs_root = `ipfs://${ipfs}`;
+  // console.log(ipfs, baseMetadataCheck);
 
-  if (baseMetadataCheck.image !== `${ipns_root}/1.png`) {
+  if (baseMetadataCheck.image !== `${ipfs_root}/1.png`) {
     const inputPath = `${dir.input}/${odg_token.token_table}/metadata-base`;
-    const inputFilenames = await fs.readdir(inputPath);
+    const inputFilenames = await fs.readdirSync(inputPath);
     for (const inFile of inputFilenames) {
-      console.log(inFile);
-      const rawMetadata = await fs.readFileSync(`${inputPath}/${inFile}`);
-      const baseMetadata = JSON.parse(rawMetadata);
-      const newMetadata = { ...baseMetadata, image: `${ipns_root}/${a}.png` };
-      await fs.writeFileSync(`${inputPath}/${inFile}`, JSON.stringify(newMetadata));
+      if (inFile[0] === ".") {
+        console.log("Skipping", inFile);
+      } else {
+        // console.log(inFile);
+        const rawMetadata = await fs.readFileSync(`${inputPath}/${inFile}`);
+        const baseMetadata = JSON.parse(rawMetadata);
+        const newMetadata = { ...baseMetadata, image: `${ipfs_root}/${inFile}.png` };
+        await fs.writeFileSync(`${inputPath}/${inFile}`, JSON.stringify(newMetadata));
+      }
     }
-    const outputPath = `${dir.output}/${odg_token.token_table}/metadata`;
-    const outputFilenames = await fs.readdir(outputPath);
+    const outputPath = `${dir.metadataOutput}/${odg_token.token_address}`;
+    const outputFilenames = await fs.readdirSync(outputPath);
     for (const outFile of outputFilenames) {
-      const rawMetadata = await fs.readFileSync(`${outputPath}/${outFile}`);
-      const baseMetadata = JSON.parse(rawMetadata);
-      const newMetadata = { ...baseMetadata, image: `${ipns_root}/${odg_nft_token.token_id}.png` };
-      await fs.writeFileSync(`${outputPath}/${outFile}`, JSON.stringify(newMetadata));
+      if (outFile[0] === ".") {
+        console.log("Skipping", outFile);
+      } else {
+        // console.log(inFile);
+        const rawMetadata = await fs.readFileSync(`${outputPath}/${outFile}`);
+        const baseMetadata = JSON.parse(rawMetadata);
+        const newMetadata = { ...baseMetadata, image: `${ipfs_root}/${outFile}.png` };
+        await fs.writeFileSync(`${outputPath}/${outFile}`, JSON.stringify(newMetadata));
+      }
     }
   } else {
     console.log("Passed metadata check");
@@ -109,8 +122,16 @@ async function checkMetadataMatches(odg_token, ipns) {
 }
 
 async function forceTheSeaToOpen(odg_tokens) {
-  // hit opensea
-  console.log("Hit opensea");
+  for (const odg_token of odg_tokens.data) {
+    const url = `${process.env.OPENSEA_API}/${odg_token.token_address}`;
+    const odg_nft_tokens = await ODGNFTTokens.getAll(odg_token.token_table);
+    for (const odg_nft_token of odg_nft_tokens.data) {
+      const forceUrl = `${url}/${odg_nft_token.token_id}/?force_update=true`;
+      await helper.wait(200);
+      console.log("Update OS", forceUrl);
+      await fetch(forceUrl);
+    }
+  }
 }
 
 export default {

@@ -5,7 +5,7 @@ import config from '../config.mjs';
 async function getAll() {
   const rows = await db.query(
     `SELECT token_pk, token_address, token_table, chain, metadata_ipfs, metadata_ipns, image_ipfs, image_ipns, percentiles
-    FROM odg_tokens`
+    FROM odg_tokens WHERE token_address IS NOT NULL`
   );
   const data = helper.emptyOrRows(rows);
 
