@@ -1,13 +1,13 @@
-import helper from '../helper.js';
+import helper from '../helper.mjs';
 
-import Requests from './requests.js';
-import ODGTokens from './odg_tokens.js';
-import ODGNFTTokens from './odg_nft_tokens.js';
-import ODGNFTMachine from './odg_nft_machine.js';
-import Wallets from './wallets.js';
-import Contracts from './nft_contracts.js';
-import Transactions from './transactions.js';
-import Currencies from './currencies.js';
+import Requests from './requests.mjs';
+import ODGTokens from './odg_tokens.mjs';
+import ODGNFTTokens from './odg_nft_tokens.mjs';
+import ODGNFTMachine from './odg_nft_machine.mjs';
+import Wallets from './wallets.mjs';
+import Contracts from './nft_contracts.mjs';
+import Transactions from './transactions.mjs';
+import Currencies from './currencies.mjs';
 
 async function start() {
   try {
@@ -22,55 +22,67 @@ async function start() {
         const insertODGToken = await ODGNFTTokens.create(odg_token[0].token_table, { token_id: request.token_id, wallet_fk: wallet.data[0].wallet_pk, now: helper.getNow() });
       }
 
-      const rankRequests = await Requests.getAll();
-      for (const rankRequest of rankRequests.data) {
-        for (const odg_token of odg_tokens.data) {
-          const wallet_tokens = await ODGNFTTokens.getByAddressChain(odg_token.token_table, rankRequest.wallet_address, rankRequest.chain);
-          if (wallet_tokens.data && wallet_tokens.data.length) {
-            let score;
-            switch (odg_token.token_table) {
-              case "odg_alpha_tokens":
-                score = await Transactions.calculateAlphaScore(rankRequest.wallet_address);
-                break;
-              case "odg_hand_tokens":
-                score = await Transactions.calculateHandScore(rankRequest.wallet_address);
-                break;
-              case "odg_whale_tokens":
-                score = await Transactions.calculateWhaleScore(rankRequest.wallet_address);
-                break;
-              case "odg_gas_tokens":
-                score = await Transactions.calculateGasScore(rankRequest.wallet_address);
-                break;
-              default:
-                break;
-            }
-            const wallet = await Wallets.getPkByAddressChain(rankRequest.wallet_address, rankRequest.chain);
-            await ODGNFTTokens.updateScoreByWalletPk(odg_token.token_table, wallet.data[0].wallet_pk, score.data[0].score);
-            await requestProcessed(rankRequest);
-          }
-        }
-      }
-
-      for (const odg_token of odg_tokens.data) {
-        const table = odg_token.token_table;
-        await ODGNFTTokens.rankTokens(table);
-        // NFT Machine!
-        await ODGNFTMachine.recreateOutputsDir(table);
-        const odg_nft_tokens = await ODGNFTTokens.getAll(table);
-        for (const odg_nft_token of odg_nft_tokens.data) {
-          await ODGNFTMachine.recreateImageAndMetadata(odg_token, odg_nft_token);
-        }
-        // an existing IPNS has to exist first
-        // in theory, the metadata image url should always stay the same
-        // which means, I can upload both the images and metadata without depending on the other
-        // store both of those addresses pre-IPNS
-        // DONE!
-      }
+      await calculateScores(odg_tokens);
     }
   } catch (err) {
     console.error(`Start Error`, err.message);
   }
 };
+
+async function calculateScores(odg_tokens) {
+  const walletError = await Wallets.lookForErrors();
+  // SKIP RANKING and the MACHINE if there's an error.
+  if (!walletError.data.length) {
+    const rankRequests = await Requests.getAll();
+    for (const rankRequest of rankRequests.data) {
+      for (const odg_token of odg_tokens.data) {
+        const wallet_tokens = await ODGNFTTokens.getByAddressChain(odg_token.token_table, rankRequest.wallet_address, rankRequest.chain);
+        if (wallet_tokens.data && wallet_tokens.data.length) {
+          let score;
+          switch (odg_token.token_table) {
+            case "odg_alpha_tokens":
+              score = await Transactions.calculateAlphaScore(rankRequest.wallet_address);
+              break;
+            case "odg_hand_tokens":
+              score = await Transactions.calculateHandScore(rankRequest.wallet_address);
+              break;
+            case "odg_whale_tokens":
+              score = await Transactions.calculateWhaleScore(rankRequest.wallet_address);
+              break;
+            case "odg_gas_tokens":
+              score = await Transactions.calculateGasScore(rankRequest.wallet_address);
+              break;
+            default:
+              break;
+          }
+          const wallet = await Wallets.getPkByAddressChain(rankRequest.wallet_address, rankRequest.chain);
+          await ODGNFTTokens.updateScoreByWalletPk(odg_token.token_table, wallet.data[0].wallet_pk, score.data[0].score);
+          await requestProcessed(rankRequest);
+        }
+      }
+    }
+
+    await startTheMachine(odg_tokens);
+  }
+
+  console.log(walletError.data.length, "wallets had errors. Do not proceed further.");
+}
+
+async function startTheMachine(odg_tokens) {
+  for (const odg_token of odg_tokens.data) {
+    const table = odg_token.token_table;
+    await ODGNFTTokens.rankTokens(table);
+    // NFT Machine!
+    await ODGNFTMachine.recreateOutputsDir(table);
+    const odg_nft_tokens = await ODGNFTTokens.getAll(table);
+    for (const odg_nft_token of odg_nft_tokens.data) {
+      await ODGNFTMachine.recreateImageAndMetadata(odg_token, odg_nft_token);
+    }
+    await ODGNFTMachine.uploadPlanets(odg_token);
+  }
+
+  await ODGNFTMachine.forceTheSeaToOpen(odg_tokens);
+}
 
 async function checkRequests(request) {
   const processed = await Requests.getByWallet(request.wallet_address);
@@ -95,7 +107,12 @@ async function findWallets(request) {
   const wallets = await Wallets.getByAddress(request.wallet_address);
   if (wallets.data && wallets.data.length) {
     for (const wallet of wallets.data) {
-      await scanExplorers(wallet);
+      try {
+        await scanExplorers(wallet);
+      } catch (err) {
+        console.error(`Error scanning explorers`, err.message);
+        await Wallets.update(wallet.wallet_pk, { updated_date: 0 });
+      }
     }
   } else {
     let now = Math.floor((new Date()).getTime()/1000);

@@ -1,5 +1,5 @@
-import db from './db.js';
-import helper from '../helper.js';
+import db from './db.mjs';
+import helper from '../helper.mjs';
 import fetch from 'node-fetch';
 
 async function create(wallet_address, now) {
@@ -16,7 +16,7 @@ async function create(wallet_address, now) {
     message = 'Wallets added';
   }
 
-  return {message};
+  return { message };
 }
 
 async function getByAddress(wallet_address) {
@@ -26,9 +26,7 @@ async function getByAddress(wallet_address) {
   const rows = await db.query(sql, [wallet_address]);
   const data = helper.emptyOrRows(rows);
 
-  return {
-    data
-  }
+  return { data };
 }
 
 async function getPkByAddressChain(wallet_address, chain) {
@@ -38,9 +36,17 @@ async function getPkByAddressChain(wallet_address, chain) {
   const rows = await db.query(sql, [wallet_address, chain]);
   const data = helper.emptyOrRows(rows);
 
-  return {
-    data
-  }
+  return { data };
+}
+
+async function lookForErrors() {
+  const sql = `SELECT wallet_pk FROM wallets
+    WHERE updated_date = 0 OR updated_date IS NULL`;
+
+  const rows = await db.query(sql);
+  const data = helper.emptyOrRows(rows);
+
+  return { data };
 }
 
 async function update(pk, data) {
@@ -130,6 +136,7 @@ export default {
   create,
   getByAddress,
   getPkByAddressChain,
+  lookForErrors,
   update,
   getERC20Transactions,
   getERC721Transactions

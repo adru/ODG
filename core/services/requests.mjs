@@ -1,7 +1,7 @@
 import mysql from 'mysql2/promise';
-import config from '../config.js';
-import db from './db.js';
-import helper from '../helper.js';
+import config from '../config.mjs';
+import db from './db.mjs';
+import helper from '../helper.mjs';
 
 async function create(token_fk, token_id, wallet_address, chain, created_date) {
   const result = await db.query(
@@ -18,7 +18,7 @@ async function create(token_fk, token_id, wallet_address, chain, created_date) {
     message = 'Request added';
   }
 
-  return {message};
+  return { message };
 }
 
 async function createAll(array) {
@@ -35,7 +35,7 @@ async function createAll(array) {
     message = 'Request added';
   }
 
-  return {message, result};
+  return { message, result };
 }
 
 async function getAll() {
@@ -45,9 +45,7 @@ async function getAll() {
   const rows = await db.query(sql);
   const data = helper.emptyOrRows(rows);
 
-  return {
-    data
-  }
+  return { data };
 }
 
 async function getByWallet(wallet_address) {
@@ -60,14 +58,12 @@ async function getByWallet(wallet_address) {
   const rows = await db.query(sql, [wallet_address]);
   const data = helper.emptyOrRows(rows);
 
-  return {
-    data
-  }
+  return { data };
 }
 
 async function moveRequest(pk) {
   const now = helper.getNow()
-  
+
   const connection = await mysql.createConnection(config.db);
   await connection.execute('SET TRANSACTION ISOLATION LEVEL READ COMMITTED');
   await connection.beginTransaction();
@@ -87,7 +83,7 @@ async function moveRequest(pk) {
     if (insertResult.affectedRows && deleteResult.affectedRows) {
       message = 'Request moved successfully';
     }
-    return {message};
+    return { message };
   } catch (err) {
     console.error(`Error occurred while creating order: ${err.message}`, err);
     connection.rollback();

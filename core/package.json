@@ -1,25 +1,27 @@
 {
   "name": "core",
   "version": "1.0.0",
-  "type": "module",
   "description": "",
   "main": "app.js",
   "scripts": {
-    "start": "npx kill-port 3000 && PORT=3000 node --experimental-json-modules app.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "npx kill-port 3000 && PORT=3000 node --experimental-json-modules app.mjs",
+    "deploy": "node --experimental-json-modules app.mjs"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@pinata/sdk": "^1.1.23",
     "bignumber.js": "^9.0.1",
     "canvas": "^2.8.0",
     "dotenv": "^10.0.0",
     "express": "^4.17.1",
+    "forever": "^4.0.1",
+    "ipfs-core": "^0.12.0",
+    "it-last": "^1.0.6",
     "mysql2": "^2.3.2",
     "node-cron": "^3.0.0",
-    "node-fetch": "^3.0.0",
-    "web3": "^1.6.0",
-    "zongji": "^0.5.1"
+    "node-fetch": "^2.6.6",
+    "web3": "^1.6.0"
   }
 }

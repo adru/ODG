@@ -1,10 +1,10 @@
 import Web3 from 'web3';
-import db from './db.js';
-import helper from '../helper.js';
+import db from './db.mjs';
+import helper from '../helper.mjs';
 import fetch from 'node-fetch';
 import BigNumber from "bignumber.js";
 
-import Contracts from './nft_contracts.js';
+import Contracts from './nft_contracts.mjs';
 
 async function create(data) {
   // console.log(data);
@@ -34,7 +34,7 @@ async function create(data) {
     message = 'Transaction added';
   }
 
-  return {message, result};
+  return { message, result };
 }
 
 async function getTransactionData(chain, hash) {
@@ -104,9 +104,7 @@ async function calculateAlphaScore(wallet_address) {
   const rows = await db.query(sql, [wallet_address]);
   const data = helper.emptyOrRows(rows);
 
-  return {
-    data
-  }
+  return { data };
 }
 
 async function calculateHandScore(wallet_address) {
@@ -117,9 +115,7 @@ async function calculateHandScore(wallet_address) {
   const rows = await db.query(sql, [wallet_address, wallet_address]);
   const data = helper.emptyOrRows(rows);
 
-  return {
-    data
-  }
+  return { data };
 }
 
 async function calculateWhaleScore(wallet_address) {
@@ -131,9 +127,7 @@ async function calculateWhaleScore(wallet_address) {
   const rows = await db.query(sql, [wallet_address]);
   const data = helper.emptyOrRows(rows);
 
-  return {
-    data
-  }
+  return { data };
 }
 
 async function calculateGasScore(wallet_address) {
@@ -145,9 +139,7 @@ async function calculateGasScore(wallet_address) {
   const rows = await db.query(sql, [wallet_address]);
   const data = helper.emptyOrRows(rows);
 
-  return {
-    data
-  }
+  return { data };
 }
 
 export default {

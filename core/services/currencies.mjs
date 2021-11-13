@@ -1,5 +1,5 @@
-import db from './db.js';
-import helper from '../helper.js';
+import db from './db.mjs';
+import helper from '../helper.mjs';
 import fetch from 'node-fetch';
 import BigNumber from "bignumber.js";
 
@@ -29,9 +29,7 @@ async function getByAddress(contract_address) {
   const rows = await db.query(sql, [contract_address]);
   const data = helper.emptyOrRows(rows);
 
-  return {
-    data
-  }
+  return { data };
 }
 
 async function getPkByAddressChain(contract_address, chain) {
@@ -41,9 +39,7 @@ async function getPkByAddressChain(contract_address, chain) {
   const rows = await db.query(sql, [contract_address, chain]);
   const data = helper.emptyOrRows(rows);
 
-  return {
-    data
-  }
+  return { data };
 }
 
 async function getUSDConversion(tx) {

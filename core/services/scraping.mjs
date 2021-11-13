@@ -1,9 +1,12 @@
 import Web3 from 'web3';
-import helper from '../helper.js';
+import helper from '../helper.mjs';
 
 import GetOwnersABI from '../abis/GetOwnersABI.json';
-import ODGTokens from './odg_tokens.js';
-import Requests from './requests.js';
+import ODGTokens from './odg_tokens.mjs';
+import Requests from './requests.mjs';
+
+// import { readFile } from 'fs/promises';
+// const GetOwnersABI = JSON.parse(await readFile(new URL('../abis/GetOwnersABI.json', import.meta.url)));
 
 async function start() {
   try {

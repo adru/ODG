@@ -1,12 +1,12 @@
 import express from 'express';
 import cron from 'node-cron';
 
-import Scraping from './services/scraping.js';
-import Processing from './services/processing.js';
+// import Scraping from './services/scraping.mjs';
+import Processing from './services/processing.mjs';
 
-import ODGTokens from './services/odg_tokens.js';
-import ODGNFTTokens from './services/odg_nft_tokens.js';
-import ODGNFTMachine from './services/odg_nft_machine.js';
+import ODGTokens from './services/odg_tokens.mjs';
+import ODGNFTTokens from './services/odg_nft_tokens.mjs';
+import ODGNFTMachine from './services/odg_nft_machine.mjs';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -16,21 +16,22 @@ app.use(express.json());
 
 let busy = false;
 
-// async function testing() {
-//   const odg_tokens = await ODGTokens.getAll();
-//
-//   for (const odg_token of odg_tokens.data) {
-//     const table = odg_token.token_table;
-//     await ODGNFTTokens.rankTokens(table);
-//     // NFT Machine!
-//     await ODGNFTMachine.recreateOutputsDir(table);
-//     const odg_nft_tokens = await ODGNFTTokens.getAll(table);
-//     for (const odg_nft_token of odg_nft_tokens.data) {
-//       await ODGNFTMachine.recreateImageAndMetadata(odg_token, odg_nft_token);
-//     }
-//   }
-// }
-// testing();
+async function testing() {
+  const odg_tokens = await ODGTokens.getAll();
+
+  for (const odg_token of odg_tokens.data) {
+    // const table = odg_token.token_table;
+    // await ODGNFTTokens.rankTokens(table);
+    // // NFT Machine!
+    // await ODGNFTMachine.recreateOutputsDir(table);
+    // const odg_nft_tokens = await ODGNFTTokens.getAll(table);
+    // for (const odg_nft_token of odg_nft_tokens.data) {
+    //   await ODGNFTMachine.recreateImageAndMetadata(odg_token, odg_nft_token);
+    // }
+    await ODGNFTMachine.uploadPlanets(odg_token);
+  }
+}
+testing();
 
 // // SCRAPE EVERY 4 HOURS
 // cron.schedule('0 */4 * * *', function() {
@@ -39,12 +40,12 @@ let busy = false;
 // });
 
 // TRIGGER QUEUE EVERY MINUTE
-cron.schedule('*/5 * * * *', function() {
-  console.log('Trigger a task every 5 minutes');
-  startProcess();
-});
-
-startProcess();
+// cron.schedule('*/5 * * * *', function() {
+//   console.log('Trigger a task every 5 minutes');
+//   startProcess();
+// });
+//
+// startProcess();
 
 // TRIGGER PROCESSING REQUESTS
 app.get('/process', async function(req, res, next) {

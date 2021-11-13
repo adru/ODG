@@ -1,5 +1,5 @@
 import dotenv from 'dotenv';
-dotenv.config({ path: './.env.production' });
+dotenv.config({ path: './.env.local' });
 
 const env = process.env;
 
@@ -12,6 +12,10 @@ const config = {
     port: env.DB_PORT || '3306',
     timezone:'+00:00',
   },
+  dir: {
+    output: "./output",
+    input: "./input"
+  }
 };
 
 export default config;

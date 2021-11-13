@@ -1,6 +1,6 @@
-import db from './db.js';
-import helper from '../helper.js';
-import config from '../config.js';
+import db from './db.mjs';
+import helper from '../helper.mjs';
+import config from '../config.mjs';
 
 async function create(table, data) {
   const sql = `INSERT INTO `+table+`
@@ -16,7 +16,7 @@ async function create(table, data) {
     message = 'Request added';
   }
 
-  return {message};
+  return { message };
 }
 
 async function getByAddressChain(table, address, chain) {
@@ -27,9 +27,7 @@ async function getByAddressChain(table, address, chain) {
   const rows = await db.query(sql, [address, chain]);
   const data = helper.emptyOrRows(rows);
 
-  return {
-    data
-  }
+  return { data };
 }
 
 async function getAll(table) {
@@ -38,9 +36,7 @@ async function getAll(table) {
   );
   const data = helper.emptyOrRows(rows);
 
-  return {
-    data
-  }
+  return { data };
 }
 
 async function updateScoreByWalletPk(table, pk, score) {
@@ -53,16 +49,16 @@ async function updateScoreByWalletPk(table, pk, score) {
   if (result.affectedRows) {
     message = 'Scores updated';
   }
-  return {message};
+  return { message };
 }
 
 async function rankTokens(table) {
   let sql = `UPDATE `+table+` a INNER JOIN (SELECT token_id,
       @rank := IF (@rankScore = score, @rank, @count) AS rank,
-      @percentile := IF(@rankScore=score, @percentile, ROUND((@totalToken - @count + 1)/(@totalToken)*100,2)) AS percentile,
+      @percentile := IF(@rankScore = score, @percentile, ROUND((@totalToken - @count + 1)/(@totalToken)*100,2)) AS percentile,
       @rankScore := score,
       @count := @count + 1
-    FROM `+table+` t, (SELECT @rank := 0, @rankScore := 0, @count := 1, @percentile := 100, @totalToken := (SELECT count(*) FROM odg_alpha_tokens) s ) r
+    FROM `+table+` t, (SELECT @rank := 0, @rankScore := 0, @count := 1, @percentile := 100, @totalToken := (SELECT count(*) FROM `+table+`) s ) r
     ORDER BY score DESC) b ON a.token_id = b.token_id
     SET a.rank = b.rank, a.percentile = b.percentile`;
   const result = await db.query(sql);
@@ -71,7 +67,7 @@ async function rankTokens(table) {
   if (result.affectedRows) {
     message = 'Ranks updated';
   }
-  return {message};
+  return { message };
 }
 
 export default {
