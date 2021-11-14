@@ -19,8 +19,8 @@ cron.schedule('0 */4 * * *', function() {
 });
 
 // TRIGGER QUEUE EVERY MINUTE
-cron.schedule('*/5 * * * *', function() {
-  console.log('Process the queue every 5 minutes');
+cron.schedule('*/30 * * * *', function() {
+  console.log('Process the queue every 30 minutes');
   startProcess();
 });
 

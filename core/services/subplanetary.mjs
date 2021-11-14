@@ -6,10 +6,10 @@ const dir = config.dir;
 let pinata;
 
 async function updateImages(odg_token, outputPath) {
-  console.log("updateImages");
+  // console.log("updateImages");
   const image_key_name = odg_token.token_table + "-images";
   const imagesIPFS = await pinataUpload(`${outputPath}`, image_key_name);
-  console.log("ifps", imagesIPFS.IpfsHash);
+  // console.log("ifps", imagesIPFS.IpfsHash);
 
   if (odg_token.image_ipfs && odg_token.image_ipfs !== imagesIPFS.IpfsHash) {
     await pinataUnpin(odg_token.image_ipfs);

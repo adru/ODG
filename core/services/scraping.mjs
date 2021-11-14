@@ -23,13 +23,11 @@ async function start() {
 };
 
 async function scrapeToken(token) {
-  console.log("Scraping token...", token);
+  console.log("Scraping token...", token.token_address, token.chain);
   let web3;
   if (token.chain === "polygon") {
-    console.log("polygon");
     web3 = new Web3(process.env.POLYGON_RPC);
   } else if (token.chain === "eth") {
-    console.log("eth");
     web3 = AlchemyWeb3.createAlchemyWeb3(process.env.ALCHEMY_RPC);
   }
   const contract = new web3.eth.Contract(GetOwnersABI, token.token_address);

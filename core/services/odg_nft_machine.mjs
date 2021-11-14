@@ -1,4 +1,4 @@
-import fs from "fs";
+import fs from "fs-extra";
 import Canvas from "canvas";
 import helper from '../helper.mjs';
 import config from '../config.mjs';
@@ -21,6 +21,7 @@ async function recreateOutputsDir(odg_token) {
     await fs.rmdirSync(metadataOutputPath, { recursive: true });
   }
   await fs.mkdirSync(metadataOutputPath, { recursive: true });
+  await fs.copySync(`${dir.input}/${odg_token.token_table}/metadata-hidden/`, metadataOutputPath);
 
   const imageOutputPath = `${dir.imageOutput}/${odg_token.token_table}`;
   if (fs.existsSync(imageOutputPath)) {
@@ -128,7 +129,7 @@ async function forceTheSeaToOpen(odg_tokens) {
     for (const odg_nft_token of odg_nft_tokens.data) {
       const forceUrl = `${url}/${odg_nft_token.token_id}/?force_update=true`;
       await helper.wait(200);
-      console.log("Update OS", forceUrl);
+      // console.log("Update OS", forceUrl);
       await fetch(forceUrl);
     }
   }
