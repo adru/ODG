@@ -77,9 +77,16 @@ async function uploadPlanets(odg_token) {
     const images = await Subplanetary.updateImages(odg_token, imageOutputPath);
     await checkMetadataMatches(odg_token, images.ipfs);
     // Metadata will be centralized at https://api.originaldegens.io/${odg_token.token_address}/${token_id}
-    await ODGTokens.update(odg_token.token_pk, { metadata_path: `${dir.resolvedOutput}/${odg_token.token_address}/`, image_ipfs: images.ipfs });
+    if (odg_token.image_ipfs !== images.ipfs) {
+      await ODGTokens.update(odg_token.token_pk, { metadata_path: `${dir.resolvedOutput}/${odg_token.token_address}/`, image_ipfs: images.ipfs });
+      return true;
+    } else {
+      console.log("No change in data.");
+      return false;
+    }
   } else {
     console.error("Folders don't exist yet. Carry on...");
+    return false;
   }
 }
 
@@ -123,7 +130,8 @@ async function checkMetadataMatches(odg_token, ipfs) {
 }
 
 async function forceTheSeaToOpen(odg_tokens) {
-  for (const odg_token of odg_tokens.data) {
+  for (const odg_token of odg_tokens) {
+    console.log("OS Update", odg_token.token_table);
     const url = `${process.env.OPENSEA_API}/${odg_token.token_address}`;
     const odg_nft_tokens = await ODGNFTTokens.getAll(odg_token.token_table);
     for (const odg_nft_token of odg_nft_tokens.data) {

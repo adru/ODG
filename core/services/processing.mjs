@@ -69,6 +69,7 @@ async function calculateScores(odg_tokens) {
 }
 
 async function startTheMachine(odg_tokens) {
+  let updated_odg_tokens = [];
   for (const odg_token of odg_tokens.data) {
     const table = odg_token.token_table;
     await ODGNFTTokens.rankTokens(table);
@@ -79,10 +80,15 @@ async function startTheMachine(odg_tokens) {
       await ODGNFTMachine.recreateImageAndMetadata(odg_token, odg_nft_token);
     }
     console.log("Subplanetary upload", odg_token.token_table);
-    await ODGNFTMachine.uploadPlanets(odg_token);
+    const planetsUpdated = await ODGNFTMachine.uploadPlanets(odg_token);
+    if (planetsUpdated) {
+      updated_odg_tokens.push(odg_token);
+    }
   }
 
-  await ODGNFTMachine.forceTheSeaToOpen(odg_tokens);
+  if (updated_odg_tokens.length) {
+    await ODGNFTMachine.forceTheSeaToOpen(updated_odg_tokens);
+  }
 }
 
 async function checkRequests(request) {

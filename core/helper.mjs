@@ -15,7 +15,7 @@ function getNow() {
 
 function wait(ms) {
   return new Promise(resolve => {
-    console.log("fetching...", ms)
+    console.log("...");
     setTimeout(() => { resolve('') }, ms);
   })
 }
